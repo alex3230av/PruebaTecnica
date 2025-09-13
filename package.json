@@ -1,0 +1,27 @@
+{
+  "name": "prueba-tecnica",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:customers": "node src/index-customers.js",
+    "dev:products": "node src/index-products.js",
+    "start:customers": "node src/index-customers.js",
+    "start:products": "node src/index-products.js",
+    "compose:up": "docker compose up --build -d",
+    "compose:down": "docker compose down -v"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "mysql2": "^3.14.5",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

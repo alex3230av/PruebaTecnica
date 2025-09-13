@@ -1,0 +1,500 @@
+openapi: 3.0.3
+info:
+  title: B2B Customers, Products & Orders APIs
+  version: "1.0.0"
+  description: |
+    Suite de APIs para clientes, productos y órdenes.
+
+servers:
+  - url: http://localhost:3001
+    description: Customers API
+  - url: http://localhost:3002
+    description: Products & Orders API
+
+tags:
+  - name: Customers
+  - name: Customers (Internal)
+  - name: Products
+  - name: Orders
+
+paths:
+  ############################
+  # Customers (puerto 3001)  #
+  ############################
+  /customers:
+    post:
+      tags: [Customers]
+      summary: Crear cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCustomer'
+            examples:
+              ejemplo:
+                value: { name: "Juan Pérez", email: "juan.perez@example.com", phone: "+51 987654321" }
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    get:
+      tags: [Customers]
+      summary: Listar clientes (búsqueda + paginación por offset)
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Buscar por name o email (LIKE)
+        - in: query
+          name: cursor
+          schema: { type: integer, minimum: 0, default: 0 }
+          description: Offset para paginación (siguiente = cursor + data.length)
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Customer' } }
+                  nextCursor: { type: integer, nullable: true }
+
+  /customers/{id}:
+    get:
+      tags: [Customers]
+      summary: Obtener cliente por id
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Customers]
+      summary: Actualizar cliente
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCustomer' }
+            examples:
+              ejemplo:
+                value: { name: "Juan P.", phone: "+51 123 456" }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      tags: [Customers]
+      summary: Eliminar cliente (duro o soft-delete según implementación)
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204': { description: Sin contenido }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /internal/customers/{id}:
+    get:
+      tags: [Customers (Internal)]
+      summary: Obtener cliente (uso interno; requiere SERVICE_TOKEN)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  ############################
+  # Products (puerto 3002)   #
+  ############################
+  /products:
+    post:
+      tags: [Products]
+      summary: Crear producto
+      description: Crea un producto con SKU único.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewProduct' }
+            examples:
+              ejemplo:
+                value: { sku: "SKU-001", name: "Widget A", price_cents: 129900, stock: 50 }
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    get:
+      tags: [Products]
+      summary: Listar productos (búsqueda + paginación por offset)
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Buscar por name o sku (LIKE)
+        - in: query
+          name: cursor
+          schema: { type: integer, minimum: 0, default: 0 }
+          description: Offset para paginación (siguiente = cursor + data.length)
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+                  nextCursor:
+                    type: integer
+                    nullable: true
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Obtener producto por id
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Products]
+      summary: Actualizar parcialmente producto (precio/stock)
+      description: Actualiza `price_cents` y/o `stock`.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PatchProduct' }
+            examples:
+              precio_y_stock:
+                value: { price_cents: 139900, stock: 60 }
+              solo_precio:
+                value: { price_cents: 149900 }
+              solo_stock:
+                value: { stock: 10 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  ############################
+  # Orders (puerto 3002)     #
+  ############################
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Crear orden (CREATED) con descuento de stock
+      description: |
+        Body: { customer_id, items:[{product_id, qty}] }
+        - Valida cliente vía **GET /internal/customers/{id}** (Authorization: Bearer SERVICE_TOKEN contra Customers API en :3001).
+        - Verifica stock y descuenta en transacción.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewOrder' }
+            examples:
+              ejemplo:
+                value:
+                  customer_id: 1
+                  items:
+                    - { product_id: 1, qty: 2 }
+                    - { product_id: 3, qty: 1 }
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderWithItems' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    get:
+      tags: [Orders]
+      summary: Listar órdenes con filtros
+      parameters:
+        - in: query
+          name: status
+          schema: { $ref: '#/components/schemas/OrderStatus' }
+          description: Filtrar por estado
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+          description: Fecha/hora mínima (ISO-8601)
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+          description: Fecha/hora máxima (ISO-8601)
+        - in: query
+          name: cursor
+          schema: { type: integer, minimum: 0, default: 0 }
+          description: Offset para paginación
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+                  nextCursor: { type: integer, nullable: true }
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Obtener orden (incluye items)
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderWithItems' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{id}/confirm:
+    post:
+      tags: [Orders]
+      summary: Confirmar orden (idempotente)
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - in: header
+          name: X-Idempotency-Key
+          required: true
+          schema: { type: string, minLength: 1 }
+          description: Clave de idempotencia; la misma key devuelve el mismo resultado
+      responses:
+        '200':
+          description: Confirmada (o ya confirmada)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancelar orden (reglas de negocio)
+      description: |
+        - Si `CREATED` → cancela y **restaura stock**.
+        - Si `CONFIRMED` → permite cancelar **<= 10 minutos** desde `created_at`.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Cancelada (stock restaurado si corresponde)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SERVICE_TOKEN
+
+  parameters:
+    IdParam:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer, minimum: 1 }
+      description: Identificador numérico
+
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            ejemplo:
+              value: { error: "invalid JSON" }
+    Unauthorized:
+      description: No autorizado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            ejemplo:
+              value: { error: "unauthorized" }
+    NotFound:
+      description: No encontrado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            ejemplo:
+              value: { error: "not found" }
+    Conflict:
+      description: Conflicto (p. ej., duplicados o sin stock)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            ejemplo:
+              value: { error: "duplicate entry", code: "ER_DUP_ENTRY" }
+
+  schemas:
+    # Customers
+    Customer:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+      required: [id, name, email, created_at]
+    NewCustomer:
+      type: object
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+      required: [name, email]
+    UpdateCustomer:
+      type: object
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+      additionalProperties: false
+      description: Al menos un campo
+
+    # Products
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        sku: { type: string }
+        name: { type: string }
+        price_cents: { type: integer, minimum: 0 }
+        stock: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+      required: [id, sku, name, price_cents, stock, created_at]
+    NewProduct:
+      type: object
+      properties:
+        sku: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        price_cents: { type: integer, minimum: 0 }
+        stock: { type: integer, minimum: 0, default: 0 }
+      required: [sku, name, price_cents]
+    PatchProduct:
+      type: object
+      properties:
+        price_cents: { type: integer, minimum: 0 }
+        stock: { type: integer, minimum: 0 }
+      additionalProperties: false
+      description: Actualiza uno o ambos campos. Requiere al menos un campo válido.
+
+    # Orders
+    OrderStatus:
+      type: string
+      enum: [CREATED, CONFIRMED, CANCELED]
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        customer_id: { type: integer }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        total_cents: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+      required: [id, customer_id, status, total_cents, created_at]
+    OrderItem:
+      type: object
+      properties:
+        product_id: { type: integer }
+        qty: { type: integer, minimum: 1 }
+        unit_price_cents: { type: integer, minimum: 0 }
+        subtotal_cents: { type: integer, minimum: 0 }
+      required: [product_id, qty, unit_price_cents, subtotal_cents]
+    OrderWithItems:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/OrderItem' }
+
+    NewOrderItem:
+      type: object
+      properties:
+        product_id: { type: integer, minimum: 1 }
+        qty: { type: integer, minimum: 1 }
+      required: [product_id, qty]
+    NewOrder:
+      type: object
+      properties:
+        customer_id: { type: integer, minimum: 1 }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/NewOrderItem' }
+      required: [customer_id, items]
+
+    # Error genérico
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        code: { type: string, nullable: true }

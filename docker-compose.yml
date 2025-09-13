@@ -1,0 +1,57 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: mysql_b2b
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-root}
+      - MYSQL_DATABASE=${DB_NAME:-B2B}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  customers:
+    build: .
+    container_name: customers_api
+    command: ["node", "src/index-customers.js"]
+    environment:
+      - CUSTOMERS_PORT=3001
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=${DB_PASSWORD:-root}
+      - DB_NAME=${DB_NAME:-B2B}
+      - SERVICE_TOKEN=${SERVICE_TOKEN:-service-secret}
+      # base para que Orders (si existiera) consulte /internal en este servicio
+      - CUSTOMERS_API_BASE=http://customers:3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  products:
+    build: .
+    container_name: products_api
+    command: ["node", "src/index-products.js"]
+    environment:
+      - PRODUCTS_PORT=3002
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=${DB_PASSWORD:-root}
+      - DB_NAME=${DB_NAME:-B2B}
+    ports:
+      - "3002:3002"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
