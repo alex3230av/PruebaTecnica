@@ -5,5 +5,11 @@ export function requireServiceToken(req, res, next) {
   if (token && token === expected) return next();
   const err = new Error('unauthorized');
   err.status = 401;
+  // Log seguro (no imprimas el token)
+  console.error('AUTH FAIL', {
+    hasAuthHeader: Boolean(auth),
+    tokenLen: token.length,
+    expectedLen: expected.length
+  });
   return next(err);
 }

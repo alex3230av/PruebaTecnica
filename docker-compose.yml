@@ -28,8 +28,15 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-root}
       - DB_NAME=${DB_NAME:-B2B}
       - SERVICE_TOKEN=${SERVICE_TOKEN:-service-secret}
-      # base para que Orders (si existiera) consulte /internal en este servicio
-      - CUSTOMERS_API_BASE=http://customers:3001
+      - CUSTOMERS_API_BASE=/customers:3001
+      - SERVICE_TOKEN=mPTeRurtXx76WP5m7qo6amXvAU6Cbkonig0hVLdR1PVbQ6op0ID0F11s
+      - ISLOCAL=true
+      - CUSTOMERS_API_BASE_EXTERNAL= https://cb5d4af38368.ngrok-free.app
+      - PRODUCTS_API_BASE_EXTERNAL= https://c9316486ca32.ngrok-free.app
+      - CUSTOMERS_API_BASE= http://customers:3001
+      - PRODUCTS_API_BASE= http://products:3002
+      - PORT_PRODUCTS=3002
+      - PORT_CUSTOMERS=3001
     ports:
       - "3001:3001"
     depends_on:
@@ -47,11 +54,45 @@ services:
       - DB_USER=root
       - DB_PASSWORD=${DB_PASSWORD:-root}
       - DB_NAME=${DB_NAME:-B2B}
+      - SERVICE_TOKEN=mPTeRurtXx76WP5m7qo6amXvAU6Cbkonig0hVLdR1PVbQ6op0ID0F11s
+      - ISLOCAL=true
+      - CUSTOMERS_API_BASE_EXTERNAL= https://cb5d4af38368.ngrok-free.app
+      - PRODUCTS_API_BASE_EXTERNAL= https://c9316486ca32.ngrok-free.app
+      - CUSTOMERS_API_BASE= http://customers:3001
+      - PRODUCTS_API_BASE= http://products:3002
+      - PORT_PRODUCTS=3002
+      - PORT_CUSTOMERS=3001
     ports:
       - "3002:3002"
     depends_on:
       db:
         condition: service_healthy
+
+  orchestrator:
+    build: .
+    container_name: orchestrator_api
+    command: ["node", "src/index-orchestrator.js"]
+    environment:
+      - ORCHESTRATOR_PORT=3000
+      - SERVICE_TOKEN=${SERVICE_TOKEN:-service-secret}
+      - CUSTOMERS_API_BASE=http://customers:3001
+      - ORDERS_API_BASE=http://products:3002
+      - SERVICE_TOKEN=mPTeRurtXx76WP5m7qo6amXvAU6Cbkonig0hVLdR1PVbQ6op0ID0F11s
+      - ISLOCAL=true
+      - CUSTOMERS_API_BASE_EXTERNAL= https://cb5d4af38368.ngrok-free.app
+      - PRODUCTS_API_BASE_EXTERNAL= https://c9316486ca32.ngrok-free.app
+      - CUSTOMERS_API_BASE= http://customers:3001
+      - PRODUCTS_API_BASE= http://products:3002
+      - PORT_PRODUCTS=3002
+      - PORT_CUSTOMERS=3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      customers:
+        condition: service_started
+      products:
+        condition: service_started
+
 
 volumes:
   mysql_data:

@@ -148,6 +148,7 @@ export async function deleteCustomer(req, res) {
 export async function getInternalCustomerById(req, res) {
   try {
     const id = Number(req.params.id);
+    console.log('REQUEST -->GET /customers/:id (getInternalCustomerById) ', id);
     const [[row]] = await pool.execute(
       'SELECT id, name, email, phone, created_at FROM customers WHERE id = ?',
       [id]
@@ -157,6 +158,7 @@ export async function getInternalCustomerById(req, res) {
       const { status, code, message } = logError(err, req);
       return res.status(status).json({ error: message, code });
     }
+    console.log('RESPONSE -->GET /customers/:id (getInternalCustomerById) ', JSON.stringify(row));
     return res.json(row);
   } catch (err) {
     const { status, code, message } = logError(err, req);

@@ -7,18 +7,25 @@ import { fetchCustomerById } from './customers-internal.js';
 export async function createOrder(req, res) {
   let conn;
   try {
-    console.log('REQUEST --> /orders (create)\n', JSON.stringify(req.body));
+    console.log('REQUEST --> /orders (create)', JSON.stringify(req.body));
     const { customer_id, items } = req.body || {};
     if (!customer_id || !Array.isArray(items) || items.length === 0) {
       const err = makeError('customer_id and items[] required', { status: 400, code: 'VALIDATION' });
       const { status, code, message } = logError(err, req);
-      console.error('ERROR --> /orders (create)\n', JSON.stringify({ status, code, message }));
+      console.error('ERROR --> /orders (create)', JSON.stringify({ status, code, message }));
       return res.status(status).json({ error: message, code });
     }
 
-    // 1) Validar cliente vía Customers /internal
-    const base = process.env.CUSTOMERS_API_BASE || `http://localhost:${process.env.PORT || 3001}`;
-    const okCustomer = await fetchCustomerById(base, customer_id, process.env.SERVICE_TOKEN || 'service-secret');
+    let base;
+
+    if(process.env.ISLOCAL==='true') {
+      base = process.env.CUSTOMERS_API_BASE || `http://localhost:${process.env.PORT_CUSTOMERS || 3001}`;
+    }else{
+      base = `${process.env.CUSTOMERS_API_BASE_EXTERNAL}`;
+    };
+    console.log('Using Customers base URL:', base);
+    console.log('Validating customer_id', process.env.SERVICE_TOKEN);
+    const okCustomer = await fetchCustomerById(base, customer_id, `Bearer ${process.env.SERVICE_TOKEN}` || 'service-secret');
     if (!okCustomer) {
       const err = makeError('customer not found', { status: 400, code: 'INVALID_CUSTOMER' });
       const { status, code, message } = logError(err, req);
