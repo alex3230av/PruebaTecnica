@@ -1,6 +1,6 @@
 import express from 'express';
 import morgan from 'morgan';
-import orchestratorRoutes from './modules/orchestrator/orchestrator.routes.js';
+import orchestratorRoutes from '../modules/orchestrator/orchestrator.routes.js';
 
 const app = express();
 app.use(express.json());

@@ -1,6 +1,6 @@
 import express from 'express';
 import morgan from 'morgan';
-import customersRoutes, { internalRouter as internalCustomers } from './modules/customers/customers.routes.js';
+import customersRoutes, { internalRouter as internalCustomers } from '../modules/customers/customers.routes.js';
 
 const app = express();
 app.use(express.json());

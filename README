@@ -1,13 +1,12 @@
-# Create a comprehensive README.md with setup steps and cURL examples
-readme = r"""
-# Prueba Técnica — Customers, Products & Orders (Node + MySQL + Docker Compose)
+# 🧪 Prueba Técnica — Customers, Products & Orders (Node + MySQL + Docker Compose)
 
-Este proyecto levanta **3 servicios**:
-- **Customers API** (puerto **3001**)
-- **Products & Orders API** (puerto **3002**)
-- **MySQL** (puerto **3306**) con `B2B` como base de datos
+Este proyecto levanta **3 servicios** principales:
 
-Incluye **OpenAPI** en `docs/openapi.yaml` y ejemplos **cURL** para probar todas las rutas.
+- **🧍 Customers API** — puerto **3001**
+- **📦 Products & Orders API** — puerto **3002**
+- **🗄️ MySQL** — puerto **3306**, con la base de datos `B2B`
+
+Incluye **OpenAPI** (`docs/openapi.yaml`) y ejemplos **cURL** para probar todas las rutas.
 
 ---
 
@@ -17,228 +16,278 @@ Incluye **OpenAPI** en `docs/openapi.yaml` y ejemplos **cURL** para probar todas
 - (Opcional) Node 22+ y npm si deseas correr local sin Docker
 - Puertos libres: **3001**, **3002**, **3306**
 
----
-
-## 🗂️ Estructura mínima esperada
-
-.
-├─ docs/
-│ └─ openapi.yaml
-├─ db/ # opcional: seeds automáticos
-│ ├─ 01_schema.sql
-│ └─ 02_seed.sql
-├─ src/
-│ ├─ index-customers.js
-│ ├─ index-products.js
-│ ├─ customers.app.js
-│ ├─ products.app.js
-│ ├─ db/
-│ │ └─ database.js # mysql2/promise pool (lee envs)
-│ └─ modules/
-│ ├─ customers/
-│ │ ├─ customers.routes.js
-│ │ └─ customers.controller.js
-│ ├─ products/
-│ │ ├─ products.routes.js
-│ │ └─ products.controller.js
-│ └─ orders/
-│ ├─ orders.routes.js
-│ └─ orders.controller.js
-├─ docker-compose.yml
-├─ Dockerfile
-├─ package.json
-└─ .env # opcional (compose lo puede leer)
-
-yaml
-
-
-> Si no usas seeds automáticos, crea la DB y tablas con tus scripts `/db/` o carga manualmente.
+> 💡 Si no usas seeds automáticos, crea la DB y tablas con tus scripts `/db/` o carga manualmente.
 
 ---
-
 
 ## ⚙️ Variables de entorno
 
-Crea un archivo `.env` en la raíz (o usa las variables por defecto del compose):
+Crea un archivo `.env` en la raíz o usa las variables por defecto del `docker-compose.yml`:
 
 ```env
 DB_PASSWORD=root
 DB_NAME=B2B
 SERVICE_TOKEN=service-secret
-Los servicios consumen estas envs (ya definidas en docker-compose.yml):
+```
 
-DB_HOST=db (dentro de la red de Docker)
+Los servicios consumen estas variables (ya definidas en `docker-compose.yml`):
 
+```
+DB_HOST=db               # dentro de la red de Docker
 DB_PORT=3306
-
 DB_USER=root
-
-DB_PASSWORD (default root)
-
-DB_NAME (default B2B)
-
+DB_PASSWORD=root
+DB_NAME=B2B
 CUSTOMERS_PORT=3001
-
 PRODUCTS_PORT=3002
+SERVICE_TOKEN=
+SERVICE_TOKEN=mPTeRurtXx76WP5m7qo6amXvAU6Cbkonig0hVLdR1PVbQ6op0ID0F11s   # para /internal y Orders→Customers 
+```
 
-SERVICE_TOKEN=service-secret (para /internal y Orders→Customers)
+---
 
-🚀 Levantar con Docker Compose
-bash
+## 🚀 Levantar con Docker Compose
 
+```bash
 # desde la raíz del repo
 docker compose up --build -d
-Ver logs:
+```
 
-bash
+### 🔍 Ver logs
 
+```bash
 docker compose logs -f db
 docker compose logs -f customers
 docker compose logs -f products
-Apagar y limpiar volúmenes (incluye datos de MySQL):
+```
 
-bash
+### 🧹 Apagar y limpiar volúmenes (incluye datos de MySQL)
 
+```bash
 docker compose down -v
-Seeds automáticos (opcional)
-Si tienes db/01_schema.sql y db/02_seed.sql, asegúrate de que el servicio db en docker-compose.yml tenga:
+```
 
-yaml
+---
 
+## 🌱 Seeds automáticos (opcional)
+
+Si tienes `db/01_schema.sql` y `db/02_seed.sql`, asegúrate de que el servicio `db` en `docker-compose.yml` tenga:
+
+```yaml
 volumes:
   - mysql_data:/var/lib/mysql
   - ./db:/docker-entrypoint-initdb.d:ro
-Se ejecuta solo la primera vez que el volumen está vacío. Para re-ejecutar: docker compose down -v && docker compose up -d.
+```
 
-🧪 Healthchecks rápidos
-bash
+> 🧠 Se ejecuta solo la primera vez que el volumen está vacío.  
+> Para re-ejecutar:  
+> `docker compose down -v && docker compose up -d`
 
+---
+
+## 🧪 Healthchecks rápidos
+
+```bash
 curl http://localhost:3001/health    # Customers
 curl http://localhost:3002/health    # Products & Orders
-🔌 cURL — Customers API (3001)
-Crear cliente
-bash
+```
 
-curl -X POST http://localhost:3001/customers \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Juan Pérez","email":"juan.perez@example.com","phone":"+51 987654321"}'
-Obtener detalle
-bash
+---
 
+## 🔌 cURL — Customers API (3001)
+
+### Crear cliente
+
+```bash
+curl -X POST http://localhost:3001/customers   -H "Content-Type: application/json"   -d '{"name":"Juan Pérez","email":"juan.perez@example.com","phone":"+51 987654321"}'
+```
+
+### Obtener detalle
+
+```bash
 curl http://localhost:3001/customers/1
-Listar (búsqueda + paginación por offset)
-bash
+```
 
+### Listar (búsqueda + paginación por offset)
+
+```bash
 curl "http://localhost:3001/customers?search=juan&cursor=0&limit=10"
-Actualizar
-bash
+```
 
-curl -X PUT http://localhost:3001/customers/1 \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Juan P.","phone":"+51 123 456"}'
-Eliminar (204)
-bash
+### Actualizar
 
+```bash
+curl -X PUT http://localhost:3001/customers/1   -H "Content-Type: application/json"   -d '{"name":"Juan P.","phone":"+51 123 456"}'
+```
+
+### Eliminar (204)
+
+```bash
 curl -X DELETE http://localhost:3001/customers/1 -i
-Internal (requiere token)
-bash
+```
 
-curl http://localhost:3001/internal/customers/1 \
-  -H "Authorization: Bearer service-secret"
-📦 cURL — Products API (3002)
-Crear producto
-bash
+### Internal (requiere token)
 
-curl -X POST http://localhost:3002/products \
-  -H "Content-Type: application/json" \
-  -d '{"sku":"SKU-001","name":"Widget A","price_cents":129900,"stock":50}'
-Obtener detalle
-bash
+```bash
+curl http://localhost:3001/internal/customers/1   -H "Authorization: Bearer mPTeRurtXx76WP5m7qo6amXvAU6Cbkonig0hVLdR1PVbQ6op0ID0F11s"
+```
 
+---
+
+## 📦 cURL — Products API (3002)
+
+### Crear producto
+
+```bash
+curl -X POST http://localhost:3002/products   -H "Content-Type: application/json"   -d '{"sku":"SKU-001","name":"Widget A","price_cents":129900,"stock":50}'
+```
+
+### Obtener detalle
+
+```bash
 curl http://localhost:3002/products/1
-Listar (búsqueda + paginación por offset)
-bash
+```
 
+### Listar (búsqueda + paginación por offset)
+
+```bash
 curl "http://localhost:3002/products?search=SKU-001&cursor=0&limit=10"
-Actualizar (PATCH: precio/stock)
-bash
+```
 
-curl -X PATCH http://localhost:3002/products/1 \
-  -H "Content-Type: application/json" \
-  -d '{"price_cents":139900,"stock":60}'
-🧾 cURL — Orders API (3002)
-Crear orden
-bash
+### Actualizar (PATCH: precio/stock)
 
-curl -X POST http://localhost:3002/orders \
-  -H "Content-Type: application/json" \
-  -d '{
+```bash
+curl -X PATCH http://localhost:3002/products/1   -H "Content-Type: application/json"   -d '{"price_cents":139900,"stock":60}'
+```
+
+---
+
+## 🧾 cURL — Orders API (3002)
+
+### Crear orden
+
+```bash
+curl -X POST http://localhost:3002/orders   -H "Content-Type: application/json"   -d '{
     "customer_id": 1,
     "items": [
       { "product_id": 1, "qty": 2 },
       { "product_id": 3, "qty": 1 }
     ]
   }'
-Obtener detalle (incluye items)
-bash
+```
 
+### Obtener detalle (incluye items)
+
+```bash
 curl http://localhost:3002/orders/1
-Listar (filtros opcionales)
-bash
+```
 
+### Listar (filtros opcionales)
+
+```bash
 curl "http://localhost:3002/orders?status=CREATED&from=2025-01-01T00:00:00Z&to=2025-12-31T23:59:59Z&cursor=0&limit=20"
-Confirmar (idempotente)
-bash
+```
 
-curl -X POST http://localhost:3002/orders/1/confirm \
-  -H "X-Idempotency-Key: a1b2c3-confirm-001"
-Repite el mismo comando con la misma key y verás el mismo resultado.
+### Confirmar (idempotente)
 
-Cancelar (reglas)
-CREATED → cancela y restaura stock
+```bash
+curl -X POST http://localhost:3002/orders/1/confirm   -H "X-Idempotency-Key: a1b2c3-confirm-001"
+```
 
-CONFIRMED → permite cancelar si han pasado ≤ 10 min desde created_at
+> 🔁 Repite el mismo comando con la misma key y verás el mismo resultado.
 
-bash
+### Cancelar (reglas)
 
+- **CREATED** → cancela y restaura stock  
+- **CONFIRMED** → permite cancelar si han pasado ≤ 10 min desde `created_at`
+
+```bash
 curl -X POST http://localhost:3002/orders/1/cancel
-🧪 OpenAPI
-La especificación está en docs/openapi.yaml con Customers (3001) y Products & Orders (3002).
-Puedes abrirla en Swagger UI/Redoc o importarla en Postman/Insomnia.
+```
 
-🛠️ Troubleshooting
-Contenedores customers_api o products_api salen con Exited (1)
+---
+
+
+### Orquestador (reglas)
+
+- **CREATED** → Realiza confirmación automáticamente  
+- **CONFIRMED** → permite confirmar una nueva oorden.
+
+```bash
+curl --location 'http://localhost:3000/orchestrator/create-and-confirm-order' \
+--header 'Content-Type: application/json' \
+--data '{
+    "customer_id": 1,
+    "items": [
+      { "product_id": 2, "qty": 3 },
+      { "product_id": 1, "qty": 3 }
+    ],
+    "idempotency_key": "ack-3sdada43",
+    "correlation_id": "req-689"
+  }'
+```
+**Criterios a considerar:**
+si se repite el mismo request con el mismo `idempotency_key`, genera una excepción.
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Error</title>
+</head>
+
+<body>
+    <pre>Internal Server Error</pre>
+</body>
+
+</html>
+---
+
+## 📘 OpenAPI
+
+La especificación está en `docs/openapi.yaml` con Customers (3001) y Products & Orders (3002).  
+Puedes abrirla en **Swagger UI**, **Redoc**, o importarla en **Postman / Insomnia**.
+
+---
+
+## 🛠️ Troubleshooting
+
+### Contenedores `customers_api` o `products_api` salen con `Exited (1)`
+
 Revisa logs:
 
-bash
-
+```bash
 docker compose logs -f customers
 docker compose logs -f products
-Errores típicos:
+```
 
-ERR_MODULE_NOT_FOUND: morgan → Asegúrate de que morgan esté en dependencies (no dev). Reconstruye con --no-cache.
+### Errores típicos
 
-Cannot use import statement → Falta "type": "module" en package.json.
+- `ERR_MODULE_NOT_FOUND: morgan` → asegúrate de que **morgan** esté en dependencies (no dev). Reconstruye con `--no-cache`.
+- `Cannot use import statement` → falta `"type": "module"` en `package.json`.
+- `ECONNREFUSED` a MySQL → dentro de Docker usa `DB_HOST=db` (no `localhost`).
 
-ECONNREFUSED a MySQL → Dentro de Docker usa DB_HOST=db (no localhost).
+### Seeds no se ejecutan
 
-Seeds no se ejecutan
-Solo corren la primera vez con volumen vacío. Para reintentar:
+Solo corren la primera vez con volumen vacío.  
+Para reintentar:
 
-bash
-
+```bash
 docker compose down -v
 docker compose up --build -d
-req.body en undefined
+```
+
+### `req.body` undefined
+
 Verifica:
+- `app.use(express.json())` antes de montar rutas
+- Requests con `Content-Type: application/json` y JSON válido
 
-app.use(express.json()) antes de montar rutas
+---
 
-Requests con Content-Type: application/json y JSON válido
+## 🧹 Comandos útiles
 
-🧹 Comandos útiles
-bash
-
+```bash
 # reconstruir imágenes limpias
 docker compose build --no-cache
 
@@ -250,11 +299,10 @@ docker compose up -d --no-deps --build products
 docker compose exec customers sh
 docker compose exec products sh
 docker compose exec db sh
-📄 Licencia
-MIT — úsalo libremente para tu prueba técnica.
-"""
+```
 
-Write the README to /mnt/data for the user to download
-path = "/mnt/data/README_prueba_tecnica.md"
-with open(path, "w", encoding="utf-8") as f:
-f.write(readme)
+---
+
+## 📄 Licencia
+
+**MIT** — úsalo libremente para tu prueba técnica.

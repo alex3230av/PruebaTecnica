@@ -1,7 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
-import productsRoutes from './modules/products/products.routes.js';
-import ordersRoutes from './modules/orders/orders.routes.js';
+import productsRoutes from '../modules/products/products.routes.js';
+import ordersRoutes from '../modules/orders/orders.routes.js';
 
 const app = express();
 app.use(express.json());

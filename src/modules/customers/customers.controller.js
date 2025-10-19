@@ -1,4 +1,5 @@
 import { pool } from "./../../db/database.js"
+import { validateEmail } from '../../utils/generic-utils.js';
 import { logError, makeError } from "./../../utils/error-logger.js";
 
 export async function createCustomer(req, res) {
@@ -11,6 +12,8 @@ export async function createCustomer(req, res) {
         const { status, code, message } = logError(err, req);
         return res.status(status).json({ error: message, code });
     }
+
+    if (!validateEmail(email, req, res)) return;
 
     const [r] = await pool.execute(
       'INSERT INTO customers (name, email, phone) VALUES (?,?,?)',
@@ -56,37 +59,56 @@ export async function getCustomerById(req, res) {
 }
 
 export async function listCustomers(req, res) {
-  try {
-    const search = String(req.query.search ?? '');
-    const cursor = Number(req.query.cursor ?? 0);
-    const limit = Math.min(Number(req.query.limit ?? 20), 100);
-    console.log('REQUEST -->GET /customers (listCustomers) ', search, cursor, limit );
+   try {
+    const rawSearch = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const rawCursor = req.query.cursor ?? '0';
+    const rawLimit  = req.query.limit  ?? '20';
 
-    const params = [];
-    let where = '';
-    if (search) {
-      where = 'WHERE name LIKE ? OR email LIKE ?';
-      params.push(`%${search}%`, `%${search}%`);
+    const cursor = Number.parseInt(String(rawCursor), 10);
+    const limit  = Number.parseInt(String(rawLimit),  10);
+
+    if (!Number.isInteger(cursor) || cursor < 0) {
+      return res.status(400).json({ error: 'INVALID_QUERY', code: 'VALIDATION_CURSOR' });
     }
-    params.push(cursor, limit);
+    if (!Number.isInteger(limit) || limit <= 0 || limit > 100) {
+      return res.status(400).json({ error: 'INVALID_QUERY', code: 'VALIDATION_LIMIT' });
+    }
 
-    const [rows] = await pool.execute(
-      `SELECT id, name, email, phone, created_at
-       FROM customers
-       ${where}
-       ORDER BY id ASC
-       LIMIT ?, ?`,
-      params
-    );
-    const response = res.json({
-      data: rows,
-      nextCursor: rows.length ? rows[rows.length - 1].id : null
+    let sql = `
+      SELECT id, name, email, phone, created_at
+      FROM customers
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (rawSearch) {
+      sql += ` AND (name LIKE ? OR email LIKE ?)`;
+      const like = `%${rawSearch}%`;
+      params.push(like, like);
+    }
+
+    sql += ` ORDER BY id ASC LIMIT ${limit} OFFSET ${cursor}`;
+
+    const [rows] = await pool.execute(sql, params);
+
+    const nextCursor = cursor + rows.length;
+
+    const payload = { data: rows, nextCursor, limit };
+    console.log('RESPONSE --> GET /customers (listCustomers)', {
+      count: rows.length,
+      nextCursor,
+      limit
     });
-    console.log('RESPONSE -->GET /customers (listCustomers) ',  JSON.stringify(response));
-    return response;
+    return res.json(payload);
   } catch (err) {
-    const { status, code, message } = logError(err, req);
-    return res.status(status).json({ error: message, code });
+    console.error('SQL error in listCustomers:', {
+      path: req.path,
+      query: req.query,
+      msg: err.message
+    });
+    const boom = makeError('DB_ERROR', { status: 500, code: err.code, details: err.message });
+    const { status, code, message } = logError(boom, req);
+    return res.status(status || 500).json({ error: message || 'DB_ERROR', code: code || err.code });
   }
 }
 
@@ -106,6 +128,8 @@ export async function updateCustomer(req, res) {
     if (email) { fields.push('email=?'); values.push(email); }
     if (phone) { fields.push('phone=?'); values.push(phone); }
     values.push(id);
+
+     if (!validateEmail(email, req, res)) return;
 
     await pool.execute(`UPDATE customers SET ${fields.join(', ')} WHERE id = ?`, values);
 

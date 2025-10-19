@@ -86,33 +86,49 @@ export async function getProductById(req, res) {
 
 // GET /products?search=&cursor=&limit=
 export async function listProducts(req, res) {
-  try {
-    const search = String(req.query.search ?? '');
-    const cursor = Number(req.query.cursor ?? 0);          // <-- offset
-    const limit  = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
+    try {
+    const rawSearch = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const rawCursor = req.query.cursor ?? '0';
+    const rawLimit  = req.query.limit  ?? '20';
 
-    const params = [];
-    let where = '';
-    if (search) {
-      where = 'WHERE name LIKE ? OR sku LIKE ?';
-      params.push(`%${search}%`, `%${search}%`);
+    const cursor = Number.parseInt(String(rawCursor), 10);
+    const limit  = Number.parseInt(String(rawLimit),  10);
+
+    if (!Number.isInteger(cursor) || cursor < 0) {
+      return res.status(400).json({ error: 'INVALID_QUERY', code: 'VALIDATION_CURSOR' });
     }
-    params.push(cursor, limit); // <-- offset, then limit
+    if (!Number.isInteger(limit) || limit <= 0 || limit > 100) {
+      return res.status(400).json({ error: 'INVALID_QUERY', code: 'VALIDATION_LIMIT' });
+    }
 
-    const [rows] = await pool.execute(
-      `SELECT id, sku, name, price_cents, stock, created_at
-       FROM products
-       ${where}
-       ORDER BY id ASC
-       LIMIT ?, ?`,
-      params
-    );
-    // nextCursor para offset pagination
-    const nextCursor = rows.length ? cursor + rows.length : cursor;
+    let sql = `
+      SELECT id, sku, name, price_cents, stock, created_at
+      FROM products
+      WHERE 1=1
+    `;
+    const params = [];
 
-    return res.json({ data: rows, nextCursor });
+    if (rawSearch) {
+      sql += ` AND (name LIKE ? OR sku LIKE ?)`;
+      const like = `%${rawSearch}%`;
+      params.push(like, like);
+    }
+
+    sql += ` ORDER BY id ASC LIMIT ${limit} OFFSET ${cursor}`;
+
+    const [rows] = await pool.execute(sql, params);
+
+    const nextCursor = cursor + rows.length;
+
+    return res.json({ data: rows, nextCursor, limit });
   } catch (err) {
+    // Log extra para depurar
+    console.error('SQL error in listProducts:', {
+      path: req.path,
+      query: req.query,
+      msg: err.message
+    });
     const { status, code, message } = logError(err, req);
-    return res.status(status).json({ error: message, code });
+    return res.status(status || 500).json({ error: message || 'DB_ERROR', code: code || err.code });
   }
 }

@@ -72,6 +72,7 @@ export async function createAndConfirmOrder(req, res, next) {
       method: 'POST',
       headers: { 'X-Idempotency-Key': idempotency_key }
     });
+    console.log('Confirming order id', created.id, 'with idempotency_key', idempotency_key);
     if (!confirmResp.ok) {
       const payload = await safeJson(confirmResp);
       const err = new Error(`confirm order failed: ${confirmResp.status} ${payload?.error ?? ''}`.trim());
@@ -106,7 +107,9 @@ export async function createAndConfirmOrder(req, res, next) {
 
     return res.status(201).json(response);
   } catch (err) {
-    return next(err);
+      err.status = mapStatus(createResp.status);
+      const { status, code, message } = logError(err, req);
+      return res.status(status).json({ error: message, code });
   }
 }
 

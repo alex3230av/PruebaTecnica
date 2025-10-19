@@ -5,10 +5,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev:customers": "node src/index-customers.js",
-    "dev:products": "node src/index-products.js",
-    "start:customers": "node src/index-customers.js",
-    "start:products": "node src/index-products.js",
+    
+    "dev:customers": "node src/B2B-customers-api/index-customers.js",
+    "dev:products": "node src/B2B-orders-api/index-products.js",
+    "dev:orchestrator": "node src/B2B-lambda-orchestrator-api/index-orchestrator.js",
+
+    "start:customers": "node src/B2B-customers-api/index-customers.js",
+    "start:products": "node src/B2B-orders-api/index-products.js",
+    "start:orchestrator": "node src/B2-lambda-orchestrator-api/index-orchestrator.js",
+
+    "dev": "npx concurrently \"npm run dev:customers\" \"npm run dev:products\" \"npm run dev:orchestrator\"",
+
     "compose:up": "docker compose up --build -d",
     "compose:down": "docker compose down -v"
   },
@@ -18,8 +25,8 @@
   "dependencies": {
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
-    "mysql2": "^3.14.5",
-    "morgan": "^1.10.1"
+    "morgan": "^1.10.1",
+    "mysql2": "^3.14.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
